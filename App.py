@@ -16,19 +16,24 @@ import serial.tools.list_ports
 import serial
 
 
+print()
+print("================================")
+print("App is running...")
+
+
 JSONFILE = 'Version_information_file.json'
 
+PYTHON = 'python3'
 APP = 'App.py'
 BOOT = 'Boot.py'
 CLIENT = 'FOTA_Client.py'
-arg = "activation_boot"
-
-print("Old SW is running...")
 
 
-# Server communication and security
-#=======================================================
-
+'''
+=========================================================
+Server communication and security
+=========================================================
+'''
 # new_SW_topic = '/SW/Jetson/#'
 
 File_path = os.path.abspath(__file__)
@@ -140,23 +145,49 @@ class Cloud_COM:
             return 
 
 
-def NewSW_CB(Cloud,Swname):
-    print("CB: ",Swname)
-    global New_SW
-    New_SW = Cloud.GetNewSW(Swname)
-    splitName = Swname.split('_v')
-    file_name = splitName[0]
-    file_name += '_new.py'
-    with open(file_name, "wb") as file:
-        file.write(New_SW)
+def NewSW_CB(Cloud, Swname):
+    try:
+        print("CB: ", Swname)
+        splitName = Swname.split('_v')
+        file_name = splitName[0]
+        version = int(splitName[1])
 
-#=======================================================
+        version_control_obj = Version_File_Control()
+        running, non_running = version_control_obj.read_2latest_version(file_name)
+
+        if version > running and version > non_running:
+            New_SW = Cloud.GetNewSW(Swname)
+            if New_SW:
+                new_file_name = file_name + '_new.py'
+                with open(new_file_name, "wb") as file:
+                    file.write(New_SW)
+                version_control_obj.update_version(file_name, version)
+
+                if file_name == 'FOTA_Master_App':
+                    subprocess.Popen([PYTHON, BOOT, 'activate_App'])
+                    exit()
+                elif file_name == 'FOTA_Master_Boot':
+                    subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
+                    exit()
+                elif file_name == 'FOTA_Client':
+                    # subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
+                    # exit()
+                    notify_New_SW()
+                else:
+                    print('Invalid file name')
+
+    except Exception as e:
+        print("NewSW_CB() error: ", e)
 
 
+'''
+=========================================================
+Version file control
+=========================================================
+'''
 
-# Version file control
-#=======================================================
-class version_file_control:
+
+class Version_File_Control:
     data = None
 
     def __init__(self):
@@ -166,12 +197,18 @@ class version_file_control:
     def read_2latest_version(self, file_name):
         return self.data[file_name]['running'], self.data[file_name]['non-running']
         
-    def update_version(self):
-        return 
+    def update_version(self, file_name, version):
+        self.data[file_name]['non-running'] = version
+        self.data[file_name]['activate'] = True
+        with open(JSONFILE, 'w') as file:
+            json.dump(self.data, file, indent=4)
 
 
-# UART Communication
-#=========================================================
+'''
+=========================================================
+UART Communication
+=========================================================
+'''
 
 msg = bytes([])
 NOTIFY_NEW_SW = bytes([1, 120, 0, 0, 0, 0, 0, 0])
@@ -197,7 +234,6 @@ def getPort():
     return commPort
 
 
-
 portName = getPort()
 print(portName)
 try:
@@ -209,12 +245,10 @@ except:
     print("Can not open the port")
 
 
-
-# Send function
 def flash_SW():
     print("Flash SW for FOTA Client")
-    #run boot to flash SW for Client
-    #todo
+    subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
+    exit()
 
 
 def notify_New_SW():
@@ -270,12 +304,15 @@ if byteRead > 0:
 #     time.sleep(0.01)
 
 
-#=========================================================
-
+'''
+=========================================================
+Main
+=========================================================
+'''
 
 if __name__ == '__main__':
     print()
-    print("Path: ",sys.path)
+    print("Path: ", sys.path)
     Cloud = Cloud_COM()
     # Cloud.FTP_Connect()
     # time.sleep(1)
@@ -286,85 +323,4 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-def job():
-    print(f"Old SW running at: {time.time()}")
-
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(job, 'interval', seconds=5)
-scheduler.start()
-
-
-while True:
-    user_input = input('Enter command (e.g., "App,1.1"): ')
-    split_input = user_input.split(',')
-
-    if len(split_input) < 2:
-        print('Invalid input format. Please use "Command,Version" format.')
-        continue
-
-    command, version = split_input[0], split_input[1]
-
-    try:
-        version = float(version)
-    except ValueError:
-        print('Invalid version number. Please enter a valid number.')
-        continue
-
-    Version_file_control = version_file_control()
-
-    if command == 'App':
-        running, non_running = Version_file_control.read_2latest_version('FOTA_Master_App')
-        if version > running and version > non_running:
-            print("Comparing with two latest versions in FOTA Master")
-            if Download_NewSW():
-                print("Download new software success")
-                Version_file_control.update_version('FOTA_Master_App', version)
-                subprocess.Popen(['python', BOOT, arg])
-                exit()
-
-    elif command == 'Bootloader':
-        print('todo')
-
-    elif command == 'Client':
-        print('todo')
-
-    else:
-        print('Error: Unrecognized command.')
-
-    time.sleep(1)
-
-    # user_input = input('Enter command: ')
-    # split_input = user_input.split(',')
-
-    # Version_file_control = version_file_control()
-
-    # if split_input[0] == 'App':
-    #     running, non_running = Version_file_control.read_2latest_version('FOTA_Master_App')
-    #     if float(split_input[1]) > running and split_input[1] > non_running :
-    #         print("Compare with two latest version in FOTA Master")
-    #         if Download_NewSW():
-    #             print("Download new software success")
-    #             subprocess.Popen(['python', bootloader, arg])
-    #             exit()
-
-    # elif split_input[0] == 'Bootloader':
-    #     print('todo')
-
-    # elif split_input[0] == 'Client':
-    #     print('todo')
-        
-    # else:
-    #      print('Error')
     

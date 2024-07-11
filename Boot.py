@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import json
 from apscheduler.schedulers.background import BackgroundScheduler
 
 
@@ -16,8 +17,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 print()
 print("================================")
-print("Bootloader is running...")
+print("Boot is running...")
 
+
+PYTHON = 'python3'
 
 APP = 'App.py'
 BOOT = 'Boot.py'
@@ -31,57 +34,76 @@ BACKUP_BOOT = 'FOTA_Master_Boot_backup.py'
 BACKUP_APP = 'FOTA_Master_App_backup.py'
 BACKUP_CLIENT = 'FOTA_Client_backup.py'
 
+JSONFILE = 'Version_information_file.json'
+
 
 def flashClient():
-    #FIX
-    process = subprocess.run(['python3', 'run_command.py', 'cp', 'Client_Test/client_Phase1_GoLeft.py', '1'])
-    print('-------------')
-    print(process)
-    print('-------------')
+    subprocess.run([PYTHON, 'run_command.py', 'cp', CLIENT, '0'])
     time.sleep(3)
-    subprocess.run(['python3', 'run_command.py', 'start', '1'])
-    time.sleep(5)
-    process = subprocess.run(['python3', 'run_command.py', 'cp', 'Client_Test/client_Phase1_GoRight.py', '1'])
+    subprocess.run([PYTHON, 'run_command.py', 'start', '0'])
     time.sleep(3)
-    print('-------------')
-    print(process)
-    print('-------------')
-    subprocess.run(['python3', 'run_command.py', 'start', '1'])
+    # subprocess.run([PYTHON, 'run_command.py', 'cp', 'Client_Test/client_Phase1_GoRight.py', '1'])
+    # time.sleep(3)
+    # subprocess.run([PYTHON, 'run_command.py', 'start', '1'])
+
+
+def update_running_version(file_name):
+    with open(JSONFILE, 'r') as file:
+        data = json.load(file)
+
+    temp = data[file_name]['running']
+    data[file_name]['running'] = data[file_name]['non-running']
+    data[file_name]['non-running'] = temp
+
+    with open(JSONFILE, 'w') as file:
+        json.dump(data, file, indent=4)
 
 
 def main_run():
     user_input = sys.argv[1]
 
-    if user_input == "runningApp":
+    if user_input == "run_App":
         print("Run App")
-        subprocess.Popen(['python', APP])
+        subprocess.Popen([PYTHON, APP])
 
-    elif user_input == "activation_boot":
-        print("Activation new boot")
+    elif user_input == "activate_Boot":
+        print("Activate new boot")
         os.rename(BOOT, BACKUP_BOOT)
         os.rename(NEW_BOOT, BOOT)
-        subprocess.Popen(['python', BOOT, 'runningApp'])
+        subprocess.Popen([PYTHON, BOOT, 'run_App'])
+        update_running_version('FOTA_Master_Boot')
 
-    elif user_input == "rollback_boot":
+    elif user_input == "rollback_Boot":
         print("Rollback boot")
         os.rename(BOOT, NEW_BOOT)
         os.rename(BACKUP_BOOT, BOOT)
-        subprocess.Popen(['python', BOOT, 'runningApp'])
+        subprocess.Popen([PYTHON, BOOT, 'run_App'])
+        update_running_version('FOTA_Master_Boot')
 
-    elif user_input == "activationApp":
-        print("Activation App")
+    elif user_input == "activate_App":
+        print("Activate App")
         os.rename(APP, BACKUP_APP)
         os.rename(NEW_APP, APP)
-        subprocess.Popen(['python', APP])
+        subprocess.Popen([PYTHON, APP])
+        update_running_version('FOTA_Master_App')
 
-    elif user_input == "rollbackApp":
+    elif user_input == "rollback_App":
         print("Rollback app")
         os.rename(APP, NEW_APP)
         os.rename(BACKUP_APP, APP)
-        subprocess.Popen(['python', APP])
+        subprocess.Popen([PYTHON, APP])
+        update_running_version('FOTA_Master_App')
+
+    elif user_input == 'activate_Client':
+        print("Activate Client")
+        os.rename(CLIENT, BACKUP_CLIENT)
+        os.rename(NEW_CLIENT, CLIENT)
+        flashClient()
+        subprocess.Popen([PYTHON, APP])
+        update_running_version('FOTA_Client')
 
     else:
-        print("Wrong")
+        print("Invalid argument")
 
 
 

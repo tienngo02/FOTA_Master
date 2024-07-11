@@ -1,32 +1,20 @@
 {
-    "FOTA_Master_Bootloader":[
+    "FOTA_Master_Boot":
         {
-            "Version": 1.0,
-            "isRunning": true
+            "running": 1,
+            "non-running": 0,
+            "activate": false
         },
+    "FOTA_Master_App":
         {
-            "Version": 0,
-            "isRunning": false
-        }
-    ],
-    "FOTA_Master_App":[
-        {
-            "Version": 1.0,
-            "isRunning": true
+            "running": 1,
+            "non-running": 0,
+            "activate": false
         },
+    "FOTA_Client":
         {
-            "Version": 0,
-            "isRunning": false
+            "running": 1,
+            "non-running": 0,
+            "activate": false
         }
-    ],
-    "FOTA_Client":[
-        {
-            "Version": 1.0,
-            "isRunning": true
-        },
-        {
-            "Version": 0,
-            "isRunning": false
-        }
-    ]
 }
