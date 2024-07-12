@@ -2,7 +2,7 @@ try:
     import subprocess
     import time
     import json
-    from apscheduler.schedulers.background import BackgroundScheduler
+    #from apscheduler.schedulers.background import BackgroundScheduler
 
     import ftplib
     import ssl
@@ -20,14 +20,12 @@ try:
     print("================================")
     print("App is running...")
 
-
     JSONFILE = 'Version_information_file.json'
 
     PYTHON = 'python3'
     APP = 'App.py'
     BOOT = 'Boot.py'
     CLIENT = 'FOTA_Client.py'
-
 
     '''
     =========================================================
@@ -199,7 +197,6 @@ try:
             
         def update_version(self, file_name, version):
             self.data[file_name]['non-running'] = version
-            self.data[file_name]['activate'] = True
             with open(JSONFILE, 'w') as file:
                 json.dump(self.data, file, indent=4)
 
@@ -210,13 +207,10 @@ try:
     =========================================================
     '''
 
-    msg = bytes([])
     NOTIFY_NEW_SW = bytes([1, 120, 0, 0, 0, 0, 0, 0])
-    RESPONSE_CONFIMATION = bytes([1, 121, 0, 0, 0, 0])
+    RESPONSE_CONFIRMATION = bytes([1, 121, 0, 0, 0, 0])
     REQUEST_FLASH_SW = bytes([1, 122, 0, 0, 0, 111, 0, 0])
     FLASH_SUCCESS_YET = bytes([1, 123, 0, 0, 0, 0, 0, 0])
-
-    flash_Success = False
 
 
     def getPort():
@@ -234,15 +228,30 @@ try:
         return commPort
 
 
-    portName = getPort()
-    print(portName)
-    try:
-        ser = serial.Serial(port=portName, baudrate=115200, parity=serial.PARITY_NONE,
-                            stopbits=serial.STOPBITS_ONE,
-                            bytesize=serial.EIGHTBITS, timeout=1)
-        print("Open successfully")
-    except:
-        print("Can not open the port")
+    MAX_RETRIES = 5
+    RETRY_DELAY = 3
+
+    def connect_serial_port():
+        attempt = 0
+        while attempt < MAX_RETRIES:
+            try:
+                ser = serial.Serial(port=getPort(), baudrate=115200, parity=serial.PARITY_NONE,
+                                    stopbits=serial.STOPBITS_ONE,
+                                    bytesize=serial.EIGHTBITS, timeout=1)
+                print("Open successfully")
+                return ser
+
+            except serial.SerialException as e:
+                attempt += 1
+                print(f"Attempt {attempt} failed")
+                if attempt < MAX_RETRIES:
+                    print(f"Retrying in {RETRY_DELAY} seconds...")
+                    time.sleep(RETRY_DELAY)
+                else:
+                    print("Can not open the port.")
+                    return None
+
+    ser = connect_serial_port()
 
 
     def flash_SW():
@@ -260,19 +269,8 @@ try:
         time.sleep(0.01)
 
 
-    def send_Msg():
-        # create msg
-        pass
-        # message = NOTIFY_NEW_SW
-        # print('--------------------------')
-        # ser.write(message)
-        # print(message)
-        # print('--------------------------')
-        # time.sleep(0.01)
-
-
     def classify_msg(msg):
-        if msg == RESPONSE_CONFIMATION:
+        if msg == RESPONSE_CONFIRMATION:
             print("Send function has been confirmed")
         elif msg == REQUEST_FLASH_SW:
             flash_SW()
@@ -291,20 +289,13 @@ try:
                 print('Next 8 bytes:', message)
                 classify_msg(message)
 
-
+    #read the waiting data in the port
     time.sleep(1)
     byteRead = ser.inWaiting()
     if byteRead > 0:
         data = ser.read(byteRead)
-        data_value = [b for b in data]
-        print(data)
-
-    # notify_New_SW()
-
-    # while True:
-    #     receive_message()
-    #     time.sleep(0.01)
-
+        #data_value = [b for b in data]
+        # print(data)
 
     '''
     =========================================================
@@ -325,7 +316,7 @@ try:
             time.sleep(0.01)
 
 except Exception as e:
-    subprocess.Popen([PYTHON, BOOT, 'rollback_App'])
+    subprocess.Popen(['python3', 'Boot.py', 'rollback_App'])
 
 
     

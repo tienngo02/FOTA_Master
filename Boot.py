@@ -4,22 +4,11 @@ try:
     import sys
     import time
     import json
-    from apscheduler.schedulers.background import BackgroundScheduler
-
-
-    # def job():
-    #     print(f"New SW running at: {time.time()}")
-
-
-    # scheduler = BackgroundScheduler()
-    # scheduler.add_job(job, 'interval', seconds=2)
-    # scheduler.start()
-
+    #from apscheduler.schedulers.background import BackgroundScheduler
 
     print()
     print("================================")
     print("Boot is running...")
-
 
     PYTHON = 'python3'
 
@@ -39,13 +28,21 @@ try:
 
 
     def flashClient():
-        subprocess.run([PYTHON, 'run_command.py', 'cp', CLIENT, '0'])
+        flash_process = subprocess.run([PYTHON, 'run_command.py', 'cp', CLIENT, '0'])
         time.sleep(3)
-        subprocess.run([PYTHON, 'run_command.py', 'start', '0'])
+        if flash_process.returncode == 0:
+            print("Flash FOTA_Client success")
+            print("Start NEW FOTA_Client...")
+        else:
+            print("Flash FOTA_Client fail")
+            print("Start OLD FOTA_Client...")
+
+        start_process = subprocess.run([PYTHON, 'run_command.py', 'start', '0'])
         time.sleep(3)
-        # subprocess.run([PYTHON, 'run_command.py', 'cp', 'Client_Test/client_Phase1_GoRight.py', '1'])
-        # time.sleep(3)
-        # subprocess.run([PYTHON, 'run_command.py', 'start', '1'])
+        if start_process.returncode == 0:
+            print("Start FOTA_Client success")
+        else:
+            print("Start FOTA_Client fail")
 
 
     def update_running_version(file_name):
@@ -100,8 +97,8 @@ try:
             os.rename(CLIENT, BACKUP_CLIENT)
             os.rename(NEW_CLIENT, CLIENT)
             flashClient()
-            subprocess.Popen([PYTHON, APP])
             update_running_version('FOTA_Client')
+            subprocess.Popen([PYTHON, APP])
 
         else:
             print("Invalid argument")
@@ -113,4 +110,4 @@ try:
         exit()
 
 except Exception as e:
-    subprocess.Popen([PYTHON, BOOT, 'rollback_App'])
+    subprocess.Popen(['python3', 'Boot.py', 'rollback_Boot'])

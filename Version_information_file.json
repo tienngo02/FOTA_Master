@@ -2,19 +2,16 @@
     "FOTA_Master_Boot":
         {
             "running": 1,
-            "non-running": 0,
-            "activate": false
+            "non-running": 0
         },
     "FOTA_Master_App":
         {
             "running": 1,
-            "non-running": 0,
-            "activate": false
+            "non-running": 0
         },
     "FOTA_Client":
         {
             "running": 1,
-            "non-running": 0,
-            "activate": false
+            "non-running": 0
         }
 }
