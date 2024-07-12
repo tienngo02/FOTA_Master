@@ -276,6 +276,8 @@ def classify_msg(msg):
         print("Send function has been confirmed")
     elif msg == REQUEST_FLASH_SW:
         flash_SW()
+    else:
+        print('Invalid message')
 
 
 def receive_message():
@@ -319,7 +321,8 @@ if __name__ == '__main__':
     Cloud.startWaitNewSW(NewSW_CB)
 
     while True:
-        time.sleep(1)
+        receive_message()
+        time.sleep(0.01)
 
 
 
