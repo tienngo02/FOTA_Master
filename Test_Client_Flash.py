@@ -4,16 +4,8 @@ import time
 import serial.tools.list_ports
 import serial
 
-# import Jetson.GPIO as GPIO
-# Thiết lập chân GPIO
-# led_pin = 11  # GPIO17 (Pin 11 trên J41)
 
-# Cấu hình chế độ chân GPIO
-# GPIO.setmode(GPIO.BOARD)
-# GPIO.setup(led_pin, GPIO.OUT, initial=GPIO.LOW)
-# GPIO.output(led_pin, GPIO.HIGH)
-
-PYTHON = 'python3'
+PYTHON = 'python3.12'
 APP = 'App.py'
 BOOT = 'Boot.py'
 CLIENT = 'FOTA_Client.py'

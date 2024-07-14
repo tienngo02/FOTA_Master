@@ -22,7 +22,7 @@ try:
 
     JSONFILE = 'Version_information_file.json'
 
-    PYTHON = 'python3'
+    PYTHON = 'python3.12'
     APP = 'App.py'
     BOOT = 'Boot.py'
     CLIENT = 'FOTA_Client.py'
@@ -154,36 +154,41 @@ try:
             running, non_running = version_control_obj.read_2latest_version(file_name)
 
             if version > running and version > non_running:
+                print('Download: ' + Swname)
                 New_SW = Cloud.GetNewSW(Swname)
                 if New_SW:
                     new_file_name = file_name + '_new.py'
                     with open(new_file_name, "wb") as file:
                         file.write(New_SW)
                     version_control_obj.update_version(file_name, version)
+                    activate_newSW(file_name)
 
-                    if file_name == 'FOTA_Master_App':
-                        subprocess.Popen([PYTHON, BOOT, 'activate_App'])
-                        exit()
-                    elif file_name == 'FOTA_Master_Boot':
-                        subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
-                        exit()
-                    elif file_name == 'FOTA_Client':
-                        # subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
-                        # exit()
-                        notify_New_SW()
-                    else:
-                        print('Invalid file name')
+            elif version == non_running and version_control_obj.activate(file_name):
+                activate_newSW(file_name)
+
 
         except Exception as e:
             print("NewSW_CB() error: ", e)
 
+    def activate_newSW(file_name):
+        if file_name == 'FOTA_Master_App':
+            subprocess.Popen([PYTHON, BOOT, 'activate_App'])
+            exit()
+        elif file_name == 'FOTA_Master_Boot':
+            subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
+            exit()
+        elif file_name == 'FOTA_Client':
+            # subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
+            # exit()
+            notify_New_SW()
+        else:
+            print('Invalid file name')
 
     '''
     =========================================================
     Version file control
     =========================================================
     '''
-
 
     class Version_File_Control:
         data = None
@@ -197,8 +202,12 @@ try:
             
         def update_version(self, file_name, version):
             self.data[file_name]['non-running'] = version
+            self.data[file_name]['activate'] = True
             with open(JSONFILE, 'w') as file:
                 json.dump(self.data, file, indent=4)
+
+        def activate(self, file_name):
+            return self.data[file_name]['activate']
 
 
     '''
@@ -270,9 +279,10 @@ try:
 
 
     def classify_msg(msg):
-        if msg == RESPONSE_CONFIRMATION:
+        if msg[1] == RESPONSE_CONFIRMATION[1]:
             print("Send function has been confirmed")
-        elif msg == REQUEST_FLASH_SW:
+        elif msg[1] == REQUEST_FLASH_SW[1]:
+            print("Received flash software request")
             flash_SW()
         else:
             print('Invalid message')
@@ -316,7 +326,7 @@ try:
             time.sleep(0.01)
 
 except Exception as e:
-    subprocess.Popen(['python3', 'Boot.py', 'rollback_App'])
+    subprocess.Popen(['python3.12', 'Boot.py', 'rollback_App'])
 
 
     

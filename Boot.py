@@ -10,7 +10,7 @@ try:
     print("================================")
     print("Boot is running...")
 
-    PYTHON = 'python3'
+    PYTHON = 'python3.12'
 
     APP = 'App.py'
     BOOT = 'Boot.py'
@@ -52,6 +52,7 @@ try:
         temp = data[file_name]['running']
         data[file_name]['running'] = data[file_name]['non-running']
         data[file_name]['non-running'] = temp
+        data[file_name]['activate'] = False
 
         with open(JSONFILE, 'w') as file:
             json.dump(data, file, indent=4)
@@ -110,4 +111,4 @@ try:
         exit()
 
 except Exception as e:
-    subprocess.Popen(['python3', 'Boot.py', 'rollback_Boot'])
+    subprocess.Popen(['python3.12', 'Boot.py', 'rollback_Boot'])
