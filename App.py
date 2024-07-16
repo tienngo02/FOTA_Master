@@ -365,4 +365,4 @@ if __name__ == '__main__':
     while True:
         if newClient:
             receive_message()
-        time.sleep(0.001)
+        time.sleep(0.01)
