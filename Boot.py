@@ -6,15 +6,6 @@ import json
 #from apscheduler.schedulers.background import BackgroundScheduler
 
 
-# def job():
-#     print(f"New SW running at: {time.time()}")
-
-
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(job, 'interval', seconds=2)
-# scheduler.start()
-
-
 print()
 print("================================")
 print("Boot is running...")
@@ -132,7 +123,6 @@ def main_run():
 
     else:
         print("Invalid argument")
-
 
 
 if __name__ == '__main__':
