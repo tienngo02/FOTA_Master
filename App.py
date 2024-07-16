@@ -26,7 +26,8 @@ APP = 'App.py'
 BOOT = 'Boot.py'
 CLIENT = 'FOTA_Client.py'
 
-global ser
+# global ser
+newClient = False
 
 '''
 =========================================================
@@ -180,9 +181,20 @@ def activate_newSW(file_name):
         subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
         exit()
     elif file_name == 'FOTA_Client':
+        global newClient
+        global ser
+        ser = connect_serial_port()
+        if ser:
+            time.sleep(1)
+            byteRead = ser.inWaiting()
+            if byteRead > 0:
+                data = ser.read(byteRead)
+                data_value = [b for b in data]
+                print(data)
+            newClient = True
+            notify_New_SW()
         # subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
         # exit()
-        notify_New_SW()
     else:
         print('Invalid file name')
 
@@ -234,7 +246,7 @@ UART Communication
 =========================================================
 '''
 
-NOTIFY_NEW_SW = bytes([1, 120, 0, 0, 0, 0, 0, 0])
+NOTIFY_NEW_SW = bytes([35, 1, 120, 0, 0, 0, 0, 0, 0])
 RESPONSE_CONFIRMATION = bytes([1, 121, 0, 0, 0, 0])
 REQUEST_FLASH_SW = bytes([1, 122, 0, 0, 0, 111, 0, 0])
 FLASH_SUCCESS_YET = bytes([1, 123, 0, 0, 0, 0, 0, 0])
@@ -263,11 +275,11 @@ def connect_serial_port():
     attempt = 0
     while attempt < MAX_RETRIES:
         try:
-            ser = serial.Serial(port=getPort(), baudrate=115200, parity=serial.PARITY_NONE,
+            seri = serial.Serial(port=getPort(), baudrate=115200, parity=serial.PARITY_NONE,
                                 stopbits=serial.STOPBITS_ONE,
                                 bytesize=serial.EIGHTBITS, timeout=1)
             print("Open successfully")
-            return ser
+            return seri
 
         except serial.SerialException as e:
             attempt += 1
@@ -280,9 +292,14 @@ def connect_serial_port():
                 return None
 
 
+# ser = connect_serial_port()
+
 
 def flash_SW():
+    bytesRead = ser.inWaiting()
+    ser.read(bytesRead)
     ser.close()
+    time.sleep(1)
     print("Flash SW for FOTA Client")
     subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
     exit()
@@ -298,15 +315,16 @@ def notify_New_SW():
 
 
 def classify_msg(msg):
-    if msg[1] == RESPONSE_CONFIRMATION[1]:
+    if msg[1] == 121:
         print("Send function has been confirmed")
-    elif msg[1] == REQUEST_FLASH_SW[1]:
+    elif msg[1] == 122:
         flash_SW()
     else:
         print('Invalid message')
 
 
 def receive_message():
+    global ser
     bytesToRead = ser.inWaiting()
     if bytesToRead > 0:
         start_byte = ser.read(1)
@@ -317,6 +335,15 @@ def receive_message():
             print('Next 8 bytes:', message)
             classify_msg(message)
 
+
+# time.sleep(1)
+# byteRead = ser.inWaiting()
+# if byteRead > 0:
+#     data = ser.read(byteRead)
+#     data_value = [b for b in data]
+#     print(data)
+
+# ser.write(FLASH_SUCCESS_YET)
 '''
 =========================================================
 Main
@@ -329,7 +356,13 @@ if __name__ == '__main__':
     print("Path: ", sys.path)
     Cloud = Cloud_COM()
     connectToServer()
-    ser = connect_serial_port()
+    # ser = connect_serial_port()
+    # time.sleep(1)
+    # byteRead = ser.inWaiting()
+    # if byteRead > 0:
+    #     data = ser.read(byteRead)
+    #     data_value = [b for b in data]
     while True:
-        receive_message()
+        if newClient:
+            receive_message()
         time.sleep(0.01)

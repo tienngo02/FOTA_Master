@@ -66,6 +66,8 @@ def update_running_version(file_name):
     data[file_name]['running'] = data[file_name]['non-running']
     data[file_name]['non-running'] = temp
 
+    data[file_name]['activate'] = False
+
     with open(JSONFILE, 'w') as file:
         json.dump(data, file, indent=4)
 
@@ -116,6 +118,15 @@ def main_run():
         os.rename(NEW_CLIENT, CLIENT)
         flashClient()
         update_running_version('FOTA_Client')
+        # subprocess.Popen([PYTHON, APP])
+        exit()
+
+    elif user_input == "rollback_Client":
+        print("Rollback client")
+        os.rename(APP, NEW_CLIENT)
+        os.rename(BACKUP_CLIENT, CLIENT)
+        update_running_version('FOTA_Client')
+        flashClient()
         subprocess.Popen([PYTHON, APP])
         exit()
 
