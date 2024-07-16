@@ -125,6 +125,7 @@ def main_run():
 
 
 if __name__ == '__main__':
+    print("New bootloader")
     main_run()
     print("Bootloader finished.")
     exit()

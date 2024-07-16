@@ -325,7 +325,7 @@ Main
 
 
 if __name__ == '__main__':
-    print()
+    print("New APP")
     print("Path: ", sys.path)
     Cloud = Cloud_COM()
     connectToServer()
