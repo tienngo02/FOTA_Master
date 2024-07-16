@@ -111,4 +111,4 @@ try:
         exit()
 
 except Exception as e:
-    subprocess.Popen(['python3.12', 'Boot.py', 'rollback_Boot'])
+    subprocess.Popen(['python3.12', 'FOTA_Master_Boot_backup.py', 'rollback_Boot'])

@@ -122,12 +122,17 @@ try:
 
 
         def startWaitNewSW(self,NewSWCB):
-            if self.isFTPConnected == False:
-                self.FTP_Connect()
-            if self.isMQTTConnected == False:
-                self.MQTT_Connect()
-            self.NotifiSW_CB = NewSWCB
-            self.MQTTclient.subscribe("SW/Jetson/#",qos=2)
+            try:
+                if self.isFTPConnected == False:
+                    self.FTP_Connect()
+                if self.isMQTTConnected == False:
+                    self.MQTT_Connect()
+                self.NotifiSW_CB = NewSWCB
+                self.MQTTclient.subscribe("SW/Jetson/#",qos=2)
+                return True
+            except Exception as e:
+                print("Connect error: ",e)
+                return False
         
         def GetNewSW(self,SWname):
             try:
@@ -183,6 +188,22 @@ try:
             notify_New_SW()
         else:
             print('Invalid file name')
+
+
+    def connectToServer():
+        connectCount = 0
+        isConnect = Cloud.startWaitNewSW(NewSW_CB)
+        while connectCount < 5 :
+            if isConnect:
+                break
+            else:
+                print("Connect server error, retrying")
+                time.sleep(5)
+                isConnect = Cloud.startWaitNewSW(NewSW_CB)
+                connectCount += 1
+        
+        if not isConnect:
+            print("Can not connect to server")
 
     '''
     =========================================================
@@ -260,9 +281,6 @@ try:
                     print("Can not open the port.")
                     return None
 
-    ser = connect_serial_port()
-
-
     def flash_SW():
         print("Flash SW for FOTA Client")
         subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
@@ -299,13 +317,16 @@ try:
                 print('Next 8 bytes:', message)
                 classify_msg(message)
 
-    #read the waiting data in the port
-    time.sleep(1)
-    byteRead = ser.inWaiting()
-    if byteRead > 0:
-        data = ser.read(byteRead)
-        #data_value = [b for b in data]
-        # print(data)
+    def initUARTcommunication():
+        serial = connect_serial_port()
+
+        #read the waiting data in the port
+        time.sleep(1)
+        byteRead = serial.inWaiting()
+        if byteRead > 0:
+            data = serial.read(byteRead)
+            
+        return serial
 
     '''
     =========================================================
@@ -313,14 +334,13 @@ try:
     =========================================================
     '''
 
+
     if __name__ == '__main__':
         print()
         print("Path: ", sys.path)
         Cloud = Cloud_COM()
-        # Cloud.FTP_Connect()
-        # time.sleep(1)
-        Cloud.startWaitNewSW(NewSW_CB)
-
+        connectToServer()
+        ser = initUARTcommunication()
         while True:
             receive_message()
             time.sleep(0.01)
