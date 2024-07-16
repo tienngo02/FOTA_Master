@@ -60,6 +60,7 @@ ser = connect_serial_port()
 
 
 def flash_SW():
+    ser.close()
     print("Flash SW for FOTA Client")
     subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
     exit()
@@ -75,9 +76,9 @@ def notify_New_SW():
 
 
 def classify_msg(msg):
-    if msg == RESPONSE_CONFIRMATION:
+    if msg[1] == RESPONSE_CONFIRMATION[1]:
         print("Send function has been confirmed")
-    elif msg == REQUEST_FLASH_SW:
+    elif msg[1] == REQUEST_FLASH_SW[1]:
         flash_SW()
     else:
         print('Invalid message')

@@ -26,6 +26,8 @@ APP = 'App.py'
 BOOT = 'Boot.py'
 CLIENT = 'FOTA_Client.py'
 
+global ser
+
 '''
 =========================================================
 Server communication and security
@@ -78,23 +80,19 @@ class Cloud_COM:
         self.FTP_Disconnect()
 
     def FTP_Connect(self):
-        try:
-            self.ftps.connect(self.host, self.FTPport)
+        self.ftps.connect(self.host, self.FTPport)
 
-            # print(self.ftps.getwelcome())
-            # print(self.ftps.sock)
+        # print(self.ftps.getwelcome())
+        # print(self.ftps.sock)
 
-            self.ftps.auth()
+        self.ftps.auth()
 
-            self.ftps.login(self.user, self.passwd, self.acct)
+        self.ftps.login(self.user, self.passwd, self.acct)
 
-            self.ftps.set_pasv(True)
-            self.ftps.prot_p()
-            self.ftps.cwd("SW")
-            self.isFTPConnected = True
-        except:
-            print("FTP Connect failed")
-            return
+        self.ftps.set_pasv(True)
+        self.ftps.prot_p()
+        self.ftps.cwd("SW")
+        self.isFTPConnected = True
 
     def FTP_Disconnect(self):
         self.ftps.quit()
@@ -260,6 +258,7 @@ def getPort():
 MAX_RETRIES = 5
 RETRY_DELAY = 3
 
+
 def connect_serial_port():
     attempt = 0
     while attempt < MAX_RETRIES:
@@ -280,7 +279,10 @@ def connect_serial_port():
                 print("Can not open the port.")
                 return None
 
+
+
 def flash_SW():
+    ser.close()
     print("Flash SW for FOTA Client")
     subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
     exit()
@@ -299,7 +301,6 @@ def classify_msg(msg):
     if msg[1] == RESPONSE_CONFIRMATION[1]:
         print("Send function has been confirmed")
     elif msg[1] == REQUEST_FLASH_SW[1]:
-        print("Received flash software request")
         flash_SW()
     else:
         print('Invalid message')
@@ -316,17 +317,6 @@ def receive_message():
             print('Next 8 bytes:', message)
             classify_msg(message)
 
-def initUARTcommunication():
-    serial = connect_serial_port()
-
-    #read the waiting data in the port
-    time.sleep(1)
-    byteRead = serial.inWaiting()
-    if byteRead > 0:
-        data = serial.read(byteRead)
-        
-    return serial
-
 '''
 =========================================================
 Main
@@ -339,8 +329,7 @@ if __name__ == '__main__':
     print("Path: ", sys.path)
     Cloud = Cloud_COM()
     connectToServer()
-    ser = initUARTcommunication()
+    ser = connect_serial_port()
     while True:
         receive_message()
         time.sleep(0.01)
-        
