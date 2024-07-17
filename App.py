@@ -26,7 +26,7 @@ APP = 'App.py'
 BOOT = 'Boot.py'
 CLIENT = 'FOTA_Client.py'
 
-global ser
+# global ser
 newClient = False
 
 '''
@@ -202,7 +202,7 @@ def activate_newSW(file_name):
 def connectToServer():
     connectCount = 0
     isConnect = Cloud.startWaitNewSW(NewSW_CB)
-    while connectCount < 5:
+    while connectCount < 5 :
         if isConnect:
             break
         else:
@@ -365,4 +365,4 @@ if __name__ == '__main__':
     while True:
         if newClient:
             receive_message()
-        time.sleep(0.01)
+        time.sleep(0.001)
