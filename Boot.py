@@ -114,7 +114,7 @@ def main_run():
 
     elif user_input == "rollback_Client":
         print("Rollback client")
-        os.rename(APP, NEW_CLIENT)
+        os.rename(CLIENT, NEW_CLIENT)
         os.rename(BACKUP_CLIENT, CLIENT)
         update_running_version('FOTA_Client')
         flashClient()

@@ -1,7 +1,6 @@
 import subprocess
 import time
 import json
-from apscheduler.schedulers.background import BackgroundScheduler
 import threading
 
 import ftplib
@@ -30,7 +29,7 @@ CLIENT = 'FOTA_Client.py'
 # global ser
 newClient = False
 stop_thread = False
-
+thread = None
 '''
 =========================================================
 Server communication and security
@@ -181,15 +180,18 @@ def NewSW_CB(Cloud, Swname):
 
 def activate_newSW(file_name):
     global stop_thread
+    global thread
     if file_name == 'FOTA_Master_App':
-        subprocess.Popen([PYTHON, BOOT, 'activate_App'])
-        
         stop_thread = True
+        thread.join()
+        subprocess.Popen([PYTHON, BOOT, 'activate_App'])
+    
         exit()
     elif file_name == 'FOTA_Master_Boot':
+        stop_thread = True
+        thread.join()
         subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
         
-        stop_thread = True
         exit()
     elif file_name == 'FOTA_Client':
         global newClient
@@ -351,9 +353,12 @@ def flash_SW():
                 bytesRead = ser.inWaiting()
                 ser.read(bytesRead)
                 ser.close()
-                subprocess.Popen([PYTHON, BOOT, 'rollback_Client'])
                 global stop_thread
+                global thread
                 stop_thread = True
+                thread.join()
+                subprocess.Popen([PYTHON, BOOT, 'rollback_Client'])
+                
                 exit()
 
             receive_message()
@@ -394,14 +399,6 @@ def receive_message():
             classify_msg(message)
 
 
-# time.sleep(1)
-# byteRead = ser.inWaiting()
-# if byteRead > 0:
-#     data = ser.read(byteRead)
-#     data_value = [b for b in data]
-#     print(data)
-
-# ser.write(FLASH_SUCCESS_YET)
 '''
 =========================================================
 Main
