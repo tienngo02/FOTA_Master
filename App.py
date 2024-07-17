@@ -1,7 +1,8 @@
 import subprocess
 import time
 import json
-#from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+import threading
 
 import ftplib
 import ssl
@@ -28,6 +29,7 @@ CLIENT = 'FOTA_Client.py'
 
 # global ser
 newClient = False
+stop_thread = False
 
 '''
 =========================================================
@@ -145,8 +147,12 @@ class Cloud_COM:
             print("Failed to get new SW, e: ",e)
             return 
 
+# isCBProcessing = False 
 
 def NewSW_CB(Cloud, Swname):
+    # global isProcessing
+    # if isCBProcessing == True:
+    #     return
     try:
         print("CB: ", Swname)
         splitName = Swname.split('_v')
@@ -164,21 +170,26 @@ def NewSW_CB(Cloud, Swname):
                 with open(new_file_name, "wb") as file:
                     file.write(New_SW)
                 version_control_obj.update_version(file_name, version)
-                activate_newSW(file_name)
-
-        elif version == non_running and version_control_obj.activate(file_name):
-            activate_newSW(file_name)
+        #         activate_newSW(file_name)
+                
+        # elif version == non_running and version_control_obj.activate(file_name):
+        #     activate_newSW(file_name)
 
 
     except Exception as e:
         print("NewSW_CB() error: ", e)
 
 def activate_newSW(file_name):
+    global stop_thread
     if file_name == 'FOTA_Master_App':
         subprocess.Popen([PYTHON, BOOT, 'activate_App'])
+        
+        stop_thread = True
         exit()
     elif file_name == 'FOTA_Master_Boot':
         subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
+        
+        stop_thread = True
         exit()
     elif file_name == 'FOTA_Client':
         global newClient
@@ -239,6 +250,11 @@ class Version_File_Control:
     def activate(self, file_name):
         return self.data[file_name]['activate']
 
+    def deactive(self, filename):
+        self.data[filename]['activate'] = False
+        with open(JSONFILE, 'w') as file:
+            json.dump(self.data, file, indent=4)
+
 
 '''
 =========================================================
@@ -249,7 +265,7 @@ UART Communication
 NOTIFY_NEW_SW = bytes([35, 1, 120, 0, 0, 0, 0, 0, 0])
 RESPONSE_CONFIRMATION = bytes([1, 121, 0, 0, 0, 0])
 REQUEST_FLASH_SW = bytes([1, 122, 0, 0, 0, 111, 0, 0])
-FLASH_SUCCESS_YET = bytes([1, 123, 0, 0, 0, 0, 0, 0])
+FLASH_SUCCESS_YET = bytes([35, 1, 123, 0, 0, 0, 0, 0, 0])
 
 
 def getPort():
@@ -293,16 +309,55 @@ def connect_serial_port():
 
 
 # ser = connect_serial_port()
-
+TIMEOUT = 5
+startTime = 0
+isFlashSuccess = False
 
 def flash_SW():
+
+    global newClient
+    global ser
+    global isFlashSuccess
     bytesRead = ser.inWaiting()
     ser.read(bytesRead)
     ser.close()
+    newClient = False
     time.sleep(1)
     print("Flash SW for FOTA Client")
-    subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
-    exit()
+    # subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
+    # exit()
+
+    subprocess.run([PYTHON, BOOT, 'activate_Client'])
+    
+    ser = connect_serial_port()
+    if ser:
+        time.sleep(1)
+        byteRead = ser.inWaiting()
+        if byteRead > 0:
+            data = ser.read(byteRead)
+            data_value = [b for b in data]
+            print(data)
+        ser.write(FLASH_SUCCESS_YET)
+        startTime = time.time()
+        while True:
+            current = time.time()
+            if isFlashSuccess:
+                print("New client flash success")
+                ser.close()
+                isFlashSuccess = False
+                break
+            if current - startTime > TIMEOUT:
+                print("New client error")
+                bytesRead = ser.inWaiting()
+                ser.read(bytesRead)
+                ser.close()
+                subprocess.Popen([PYTHON, BOOT, 'rollback_Client'])
+                global stop_thread
+                stop_thread = True
+                exit()
+
+            receive_message()
+            time.sleep(0.001)
 
 
 def notify_New_SW():
@@ -319,6 +374,9 @@ def classify_msg(msg):
         print("Send function has been confirmed")
     elif msg[1] == 122:
         flash_SW()
+    elif msg[1] == 124:
+        global isFlashSuccess
+        isFlashSuccess = True
     else:
         print('Invalid message')
 
@@ -351,11 +409,30 @@ Main
 '''
 
 
+def handle_activate_newSW():
+    global stop_thread
+    while not stop_thread:
+        version_control_obj = Version_File_Control()
+        if version_control_obj.activate('FOTA_Master_Boot'):
+            activate_newSW('FOTA_Master_Boot')
+            
+        elif version_control_obj.activate('FOTA_Master_App'):
+            activate_newSW('FOTA_Master_App')
+            
+        elif version_control_obj.activate('FOTA_Client'):
+            activate_newSW('FOTA_Client')
+            # version_control_obj.deactive('FOTA_Client')
+ 
+        time.sleep(1)
+
+
 if __name__ == '__main__':
     print("New APP")
     print("Path: ", sys.path)
     Cloud = Cloud_COM()
     connectToServer()
+    thread = threading.Thread(target=handle_activate_newSW)
+    thread.start()
     # ser = connect_serial_port()
     # time.sleep(1)
     # byteRead = ser.inWaiting()
