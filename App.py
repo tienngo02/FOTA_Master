@@ -332,8 +332,8 @@ def flash_SW():
     subprocess.run([PYTHON, BOOT, 'activate_Client'])
     
     ser = connect_serial_port()
+    time.sleep(1)
     if ser:
-        time.sleep(1)
         byteRead = ser.inWaiting()
         if byteRead > 0:
             data = ser.read(byteRead)
@@ -352,7 +352,8 @@ def flash_SW():
                 print("New client error")
                 bytesRead = ser.inWaiting()
                 ser.read(bytesRead)
-                ser.close()
+                if ser :
+                    ser.close()
                 # global stop_thread
                 # global thread
                 # stop_thread = True
@@ -425,7 +426,7 @@ Main
 
 if __name__ == '__main__':
     try:
-        print("New APP")
+        print("New APP ne")
         print("Path: ", sys.path)
         Cloud = Cloud_COM()
         connectToServer()
@@ -445,5 +446,6 @@ if __name__ == '__main__':
             time.sleep(0.001)
     except Exception as e:
         print('App is error, rollback app')
+        print(e)
         subprocess.Popen(['python3.12', 'Boot.py', 'rollback_App'])
         exit()
