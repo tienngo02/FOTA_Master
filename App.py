@@ -28,8 +28,8 @@ CLIENT = 'FOTA_Client.py'
 
 # global ser
 newClient = False
-stop_thread = False
-thread = None
+# stop_thread = False
+# thread = None
 '''
 =========================================================
 Server communication and security
@@ -169,27 +169,27 @@ def NewSW_CB(Cloud, Swname):
                 with open(new_file_name, "wb") as file:
                     file.write(New_SW)
                 version_control_obj.update_version(file_name, version)
-        #         activate_newSW(file_name)
+                activate_newSW(file_name)
                 
-        # elif version == non_running and version_control_obj.activate(file_name):
-        #     activate_newSW(file_name)
+        elif version == non_running and version_control_obj.activate(file_name):
+            activate_newSW(file_name)
 
 
     except Exception as e:
         print("NewSW_CB() error: ", e)
 
 def activate_newSW(file_name):
-    global stop_thread
-    global thread
+    # global stop_thread
+    # global thread
     if file_name == 'FOTA_Master_App':
-        stop_thread = True
-        thread.join()
+        # stop_thread = True
+        # thread.join()
         subprocess.Popen([PYTHON, BOOT, 'activate_App'])
     
         exit()
     elif file_name == 'FOTA_Master_Boot':
-        stop_thread = True
-        thread.join()
+        # stop_thread = True
+        # thread.join()
         subprocess.Popen([PYTHON, BOOT, 'activate_Boot'])
         
         exit()
@@ -203,7 +203,7 @@ def activate_newSW(file_name):
             if byteRead > 0:
                 data = ser.read(byteRead)
                 data_value = [b for b in data]
-                print(data)
+                # print(data)
             newClient = True
             notify_New_SW()
         # subprocess.Popen([PYTHON, BOOT, 'activate_Client'])
@@ -338,7 +338,7 @@ def flash_SW():
         if byteRead > 0:
             data = ser.read(byteRead)
             data_value = [b for b in data]
-            print(data)
+            # print(data)
         ser.write(FLASH_SUCCESS_YET)
         startTime = time.time()
         while True:
@@ -353,10 +353,10 @@ def flash_SW():
                 bytesRead = ser.inWaiting()
                 ser.read(bytesRead)
                 ser.close()
-                global stop_thread
-                global thread
-                stop_thread = True
-                thread.join()
+                # global stop_thread
+                # global thread
+                # stop_thread = True
+                # thread.join()
                 subprocess.Popen([PYTHON, BOOT, 'rollback_Client'])
                 
                 exit()
@@ -406,37 +406,44 @@ Main
 '''
 
 
-def handle_activate_newSW():
-    global stop_thread
-    while not stop_thread:
-        version_control_obj = Version_File_Control()
-        if version_control_obj.activate('FOTA_Master_Boot'):
-            activate_newSW('FOTA_Master_Boot')
+# def handle_activate_newSW():
+#     global stop_thread
+#     while not stop_thread:
+#         version_control_obj = Version_File_Control()
+#         if version_control_obj.activate('FOTA_Master_Boot'):
+#             activate_newSW('FOTA_Master_Boot')
             
-        elif version_control_obj.activate('FOTA_Master_App'):
-            activate_newSW('FOTA_Master_App')
+#         elif version_control_obj.activate('FOTA_Master_App'):
+#             activate_newSW('FOTA_Master_App')
             
-        elif version_control_obj.activate('FOTA_Client'):
-            activate_newSW('FOTA_Client')
-            # version_control_obj.deactive('FOTA_Client')
+#         elif version_control_obj.activate('FOTA_Client'):
+#             activate_newSW('FOTA_Client')
+#             # version_control_obj.deactive('FOTA_Client')
  
-        time.sleep(1)
+#         time.sleep(1)
 
 
 if __name__ == '__main__':
-    print("New APP")
-    print("Path: ", sys.path)
-    Cloud = Cloud_COM()
-    connectToServer()
-    thread = threading.Thread(target=handle_activate_newSW)
-    thread.start()
-    # ser = connect_serial_port()
-    # time.sleep(1)
-    # byteRead = ser.inWaiting()
-    # if byteRead > 0:
-    #     data = ser.read(byteRead)
-    #     data_value = [b for b in data]
-    while True:
-        if newClient:
-            receive_message()
-        time.sleep(0.001)
+    try:
+        print("New APP")
+        print("Path: ", sys.path)
+        Cloud = Cloud_COM()
+        connectToServer()
+        # thread = threading.Thread(target=handle_activate_newSW)
+        # thread.daemon = True
+        # thread.start()
+
+        # ser = connect_serial_port()
+        # time.sleep(1)
+        # byteRead = ser.inWaiting()
+        # if byteRead > 0:
+        #     data = ser.read(byteRead)
+        #     data_value = [b for b in data]
+        while True:
+            if newClient:
+                receive_message()
+            time.sleep(0.001)
+    except Exception as e:
+        print('App is error, rollback app')
+        subprocess.Popen(['python3.12', 'Boot.py', 'rollback_App'])
+        exit()

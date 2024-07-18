@@ -126,7 +126,12 @@ def main_run():
 
 
 if __name__ == '__main__':
-    print("New bootloader")
-    main_run()
-    print("Bootloader finished.")
-    exit()
+    try:
+        print("New bootloader")
+        main_run()
+        print("Bootloader finished.")
+        exit()
+    except Exception as e:
+        print('App is error, rollback app')
+        subprocess.Popen(['python3.12', 'FOTA_Master_Boot_backup.py', 'rollback_Boot'])
+        exit()
