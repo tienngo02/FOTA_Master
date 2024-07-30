@@ -140,7 +140,7 @@ class Cloud_COM:
             Unverified_SW_io.seek(0)
             Unverified_SW = Unverified_SW_io.read()
             print(len(Unverified_SW_io.read()))
-            Verified_SW = Security.Verify_Decrypt(Unverified_SW)
+            Verified_SW = Security.Verify_Decrypt_SW(Unverified_SW)
             return Verified_SW
         except Exception as e:
             print("Failed to get new SW, e: ",e)
