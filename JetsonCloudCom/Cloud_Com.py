@@ -34,7 +34,10 @@ class Cloud_COM:
         self.user = 'user1'
         self.passwd = '123456'
         self.acct = 'Normal'
+        self.SensorTopic = 'jetson/jetsonano/imu'
+        self.BatteryTopic = 'jetson/jetsonano/batt'
         self.ca_cert_path = Folder_Dir + '/certs/ca.crt'
+        self.isStreaming = False
         print(self.ca_cert_path)
         self.ssl_context = ssl.create_default_context(cafile=self.ca_cert_path)
         self.ftps = MyFTP_TLS(context=self.ssl_context)
@@ -95,6 +98,13 @@ class Cloud_COM:
         topic = message.topic
         if topic == "SW/Jetson/FOTA_Master_App" or topic == "SW/Jetson/FOTA_Master_Boot" or topic == "SW/Jetson/FOTA_Client":
             self.NotifiSW_CB(self,payload)
+        elif topic == 'jetson/jetsonano/stream':
+            if message == 'start' and self.isStreaming == False:
+                #start streaming
+                pass
+            elif message == 'stop':
+                #stop streaming
+                pass
 
 
     def startWaitNewSW(self,NewSWCB):
@@ -105,7 +115,13 @@ class Cloud_COM:
         self.NotifiSW_CB = NewSWCB
         self.MQTTclient.subscribe("SW/Jetson/#",qos=2)
     
-    def GetNewSW(self,SWname):
+    def startWaitStreamReq(self,getImg):
+        if self.isMQTTConnected == False:
+            self.MQTT_Connect()
+        self.MQTTclient.subscribe(self.SensorTopic,qos=2)
+
+
+    def GetNewSW(self,SWname: str):
         try:
             Unverified_SW_io = io.BytesIO()
             self.ftps.retrbinary('RETR ' + SWname,Unverified_SW_io.write)
@@ -117,9 +133,23 @@ class Cloud_COM:
         except Exception as e:
             print("Failed to get new SW, e: ",e)
             return 
+        
 
+    def Publish_Sensor(self,DataJSON: str):
+        try:
+            self.MQTTclient.publish(self.SensorTopic,DataJSON,qos=1)
+        except:
+            print('Can not publish')
+            pass
 
-def NewSW_CB(Cloud,Swname):
+    def Publish_Batt(self,DataJSON: str):
+        try:
+            self.MQTTclient.publish(self.BatteryTopic,DataJSON,qos=1)
+        except:
+            print('Can not publish')
+            pass
+
+def NewSW_CB(Cloud,Swname: str):
     print("CB: ",Swname)
     global New_SW
     New_SW = Cloud.GetNewSW(Swname)
