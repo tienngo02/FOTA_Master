@@ -115,7 +115,7 @@ class Cloud_COM:
         self.NotifiSW_CB = NewSWCB
         self.MQTTclient.subscribe("SW/Jetson/#",qos=2)
     
-    def startWaitStreamReq(self,getImg):
+    def startWaitStreamReq(self):
         if self.isMQTTConnected == False:
             self.MQTT_Connect()
         self.MQTTclient.subscribe(self.SensorTopic,qos=2)
